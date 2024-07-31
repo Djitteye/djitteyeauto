@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "41639094673",
+    "project_id": "back-das",
+    "storage_bucket": "back-das.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41639094673:android:25ac6493b06ab02f375230",
+        "android_client_info": {
+          "package_name": "parking.das"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMxvASVBSopo3kVzQ3EG_mpwI1XX4K9xs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

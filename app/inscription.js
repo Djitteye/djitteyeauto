@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { setDoc, doc } from 'firebase/firestore';
+import { auth, firestore } from '../firebaseConfig';
 
 const Inscription = () => {
   const navigation = useNavigation();
@@ -12,24 +15,36 @@ const Inscription = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSignup = () => {
-    console.log('First Name:', firstName);
-    console.log('Last Name:', lastName);
-    console.log('Email:', email);
-    console.log('Phone Number:', phoneNumber);
-    console.log('Password:', password);
-    console.log('Confirm Password:', confirmPassword);
-    
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPhoneNumber('');
-    setPassword('');
-    setConfirmPassword('');
-  };
+  const handleSignup = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+      return;
+    }
 
-  const handleLoginLink = () => {
-    console.log('Login Link');
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(firestore, 'users', user.uid), {
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+      });
+
+      Alert.alert('Succès', 'Inscription réussie !', [
+        { text: 'OK', onPress: () => navigation.navigate('connexion') }
+      ]);
+
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setPhoneNumber('');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      Alert.alert('Erreur', error.message);
+    }
   };
 
   return (
@@ -43,7 +58,7 @@ const Inscription = () => {
           placeholder="Prénom"
           placeholderTextColor="#999"
           value={firstName}
-          onChangeText={(text) => setFirstName(text)}
+          onChangeText={setFirstName}
         />
       </View>
 
@@ -54,7 +69,7 @@ const Inscription = () => {
           placeholder="Nom"
           placeholderTextColor="#999"
           value={lastName}
-          onChangeText={(text) => setLastName(text)}
+          onChangeText={setLastName}
         />
       </View>
 
@@ -66,7 +81,7 @@ const Inscription = () => {
           placeholderTextColor="#999"
           keyboardType="email-address"
           value={email}
-          onChangeText={(text) => setEmail(text)}
+          onChangeText={setEmail}
         />
       </View>
 
@@ -78,7 +93,7 @@ const Inscription = () => {
           placeholderTextColor="#999"
           keyboardType="phone-pad"
           value={phoneNumber}
-          onChangeText={(text) => setPhoneNumber(text)}
+          onChangeText={setPhoneNumber}
         />
       </View>
 
@@ -90,7 +105,7 @@ const Inscription = () => {
           placeholderTextColor="#999"
           secureTextEntry={true}
           value={password}
-          onChangeText={(text) => setPassword(text)}
+          onChangeText={setPassword}
         />
       </View>
 
@@ -102,7 +117,7 @@ const Inscription = () => {
           placeholderTextColor="#999"
           secureTextEntry={true}
           value={confirmPassword}
-          onChangeText={(text) => setConfirmPassword(text)}
+          onChangeText={setConfirmPassword}
         />
       </View>
 

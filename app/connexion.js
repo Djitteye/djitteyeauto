@@ -1,25 +1,42 @@
+// Connexion.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 
 const Connexion = () => {
   const navigation = useNavigation();
-  const route = useRoute();
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleLogin = () => {
-    // Insérer ici la logique de connexion (envoi des données au backend, etc.)
-    console.log('Phone Number:', phoneNumber);
-    console.log('Password:', password);
-    console.log('Remember Me:', rememberMe);
-    // Réinitialisation des champs après la connexion
-    setPhoneNumber('');
-    setPassword('');
-    // Redirection vers la page bienvenue après connexion
-    navigation.navigate('Bienvenue');
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      console.log('User signed in:', user);
+
+      Alert.alert('Succès', 'Connexion réussie !', [
+        { text: 'OK', onPress: () => navigation.navigate('accueil') }
+      ]);
+
+      // Réinitialisation des champs après la connexion
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      if (error.code === 'auth/wrong-password') {
+        Alert.alert('Erreur', 'Mot de passe incorrect');
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert('Erreur', "L'utilisateur n'existe pas");
+      } else if (error.code === 'auth/invalid-email') {
+        Alert.alert('Erreur', "L'adresse e-mail est invalide");
+      } else {
+        Alert.alert('Erreur', error.message);
+      }
+    }
   };
 
   const handleForgotPassword = () => {
@@ -29,29 +46,26 @@ const Connexion = () => {
 
   const handleSignUp = () => {
     // Redirection vers la page d'inscription
-    navigation.navigate('Inscription');
+    navigation.navigate('inscription');
   };
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require('../assets/images/gris.jpg')}
-        style={styles.image}
-      />
+      <Image source={require('../assets/images/gris.jpg')} style={styles.image} />
       <Text style={styles.title}>Connectez-vous!</Text>
-      
+
       <View style={styles.inputContainer}>
-        <Icon name="phone" size={20} color="#999" style={styles.icon} />
-        <TextInput 
+        <Icon name="envelope" size={20} color="#999" style={styles.icon} />
+        <TextInput
           style={styles.input}
-          placeholder="Téléphone"
+          placeholder="Email"
           placeholderTextColor="#999"
-          keyboardType="phone-pad"
-          value={phoneNumber}
-          onChangeText={(text) => setPhoneNumber(text)}
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
         />
       </View>
-      
+
       <View style={styles.inputContainer}>
         <Icon name="lock" size={20} color="#999" style={styles.icon} />
         <TextInput
@@ -60,7 +74,7 @@ const Connexion = () => {
           placeholderTextColor="#999"
           secureTextEntry={true}
           value={password}
-          onChangeText={(text) => setPassword(text)}
+          onChangeText={setPassword}
         />
       </View>
 
@@ -79,7 +93,7 @@ const Connexion = () => {
 
       <View style={styles.signUpContainer}>
         <Text style={styles.signUpText}>Vous n'avez pas de compte ? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('inscription')}>
+        <TouchableOpacity onPress={handleSignUp}>
           <Text style={styles.signUpLink}>Inscrivez-vous</Text>
         </TouchableOpacity>
       </View>
