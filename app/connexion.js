@@ -1,41 +1,62 @@
-// Connexion.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 const Connexion = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
+
     try {
+      const auth = getAuth();
+      const firestore = getFirestore();
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      console.log('User signed in:', user);
+      // Retrieve user details from Firestore
+      const userDoc = await getDoc(doc(firestore, 'Users', user.uid));
 
-      Alert.alert('Succès', 'Connexion réussie !', [
-        { text: 'OK', onPress: () => navigation.navigate('accueil') }
-      ]);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const { firstName, lastName } = userData;
+
+        Alert.alert('Succès', `Bienvenue, ${firstName} ${lastName} !`);
+        
+        // Navigate to the main screen and pass user data
+        navigation.navigate('(tabs)', {
+          userName: `${firstName} ${lastName}`
+        });
+      } else {
+        Alert.alert('Erreur', "Impossible de récupérer les informations de l'utilisateur.");
+      }
 
       // Réinitialisation des champs après la connexion
       setEmail('');
       setPassword('');
     } catch (error) {
-      if (error.code === 'auth/wrong-password') {
-        Alert.alert('Erreur', 'Mot de passe incorrect');
-      } else if (error.code === 'auth/user-not-found') {
-        Alert.alert('Erreur', "L'utilisateur n'existe pas");
-      } else if (error.code === 'auth/invalid-email') {
-        Alert.alert('Erreur', "L'adresse e-mail est invalide");
-      } else {
-        Alert.alert('Erreur', error.message);
+      switch (error.code) {
+        case 'auth/wrong-password':
+          Alert.alert('Erreur', 'Mot de passe incorrect');
+          break;
+        case 'auth/user-not-found':
+          Alert.alert('Erreur', "L'utilisateur n'existe pas");
+          break;
+        case 'auth/invalid-email':
+          Alert.alert('Erreur', "L'adresse e-mail est invalide");
+          break;
+        default:
+          Alert.alert('Erreur', error.message);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,8 +108,8 @@ const Connexion = () => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
-        <Text style={styles.loginButtonText}>Se connecter</Text>
+      <TouchableOpacity onPress={handleLogin} style={styles.loginButton} disabled={loading}>
+        <Text style={styles.loginButtonText}>{loading ? 'Connexion...' : 'Se connecter'}</Text>
       </TouchableOpacity>
 
       <View style={styles.signUpContainer}>
@@ -112,6 +133,7 @@ const styles = StyleSheet.create({
   image: {
     width: 200,
     height: 200,
+    marginBottom: 20,
   },
   title: {
     fontSize: 25,
@@ -156,12 +178,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 30,
     marginBottom: 20,
+    alignItems: 'center',
   },
   loginButtonText: {
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   signUpContainer: {
     flexDirection: 'row',

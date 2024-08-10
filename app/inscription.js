@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
-import { auth, firestore } from '../firebaseConfig';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, addDoc } from 'firebase/firestore';
+import { firestore } from '../firebaseConfig'; // Assurez-vous que le chemin est correct
 
 const Inscription = () => {
   const navigation = useNavigation();
@@ -14,6 +14,7 @@ const Inscription = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
     if (password !== confirmPassword) {
@@ -21,19 +22,23 @@ const Inscription = () => {
       return;
     }
 
+    setLoading(true);
+
     try {
+      const auth = getAuth();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      await setDoc(doc(firestore, 'users', user.uid), {
+      await addDoc(collection(firestore, 'Users'), {
         firstName,
         lastName,
         email,
         phoneNumber,
+        userId: user.uid
       });
 
       Alert.alert('Succès', 'Inscription réussie !', [
-        { text: 'OK', onPress: () => navigation.navigate('connexion') }
+        { text: 'OK', onPress: () => navigation.navigate('connexion') },
       ]);
 
       setFirstName('');
@@ -43,7 +48,13 @@ const Inscription = () => {
       setPassword('');
       setConfirmPassword('');
     } catch (error) {
-      Alert.alert('Erreur', error.message);
+      if (error.code === 'permission-denied') {
+        Alert.alert('Erreur', 'Permissions insuffisantes. Veuillez vérifier vos règles de sécurité Firestore.');
+      } else {
+        Alert.alert('Erreur', error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,8 +132,8 @@ const Inscription = () => {
         />
       </View>
 
-      <TouchableOpacity onPress={handleSignup} style={styles.signupButton}>
-        <Text style={styles.signupButtonText}>S'inscrire</Text>
+      <TouchableOpacity onPress={handleSignup} style={styles.signupButton} disabled={loading}>
+        <Text style={styles.signupButtonText}>{loading ? 'Inscription...' : "S'inscrire"}</Text>
       </TouchableOpacity>
 
       <View style={styles.loginLinkContainer}>
@@ -168,7 +179,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     padding: 10,
     color: 'black',
-    fontSize: 14,
   },
   signupButton: {
     backgroundColor: '#FD6A00',
@@ -176,12 +186,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 30,
     marginBottom: 20,
+    alignItems: 'center',
   },
   signupButtonText: {
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   loginLinkContainer: {
     flexDirection: 'row',
